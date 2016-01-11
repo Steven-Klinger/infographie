@@ -59,9 +59,19 @@ void read(){
 
 	while ((read = getline(&line, &len, fp)) != -1) {
 
-		if(strchr(line, 'f')){
+		if(strchr(line, 'f') && !strchr(line, '#')){
 				
-			printf("%s",strtok(line, '/'));	
+			printf("%s \n",strtok(line+2, "/"));
+			char *res = NULL;
+			int cnt = 1;
+			while (res = strtok(NULL, "/ ")) {
+				if (0==cnt%3) printf("%s \n", res);
+				cnt++;
+
+			}
+
+			printf("===============\n");
+
 		}	 	
 	}
 
