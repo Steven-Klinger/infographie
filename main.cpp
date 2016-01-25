@@ -128,28 +128,55 @@ void read(){
 
 }
 
+void remplir_Triangle(int x1, int y1, int x2, int y2, int x3, int y3){
+  
+  TGAImage image(1000, 1000, TGAImage::RGB);
+  
+  line(x1,y1,x2,y2,image,pink);
+  line(x2,y2,x3,y3,image,pink);
+  line(x3,y3,x1,y1,image,pink);
+  int i;
+  int j;
+  for(i =0; i<1000; i++){
+    
+    for(j=0; j<1000; j++){
+	
+      if(((x1-i)*(y2-j))-((y1-j)*(x2-i)) >= 0 && (((x2-i)*(y3-j))-((y2-j)*(x3-i))) >= 0 && (((x3-i)*(y1-j))-((y3-j)*(x1-i))) >= 0 
+	|| (((x1-i)*(y2-j))-((y1-j)*(x2-i)) <= 0 && (((x2-i)*(y3-j))-((y2-j)*(x3-i))) <= 0 && (((x3-i)*(y1-j))-((y3-j)*(x1-i))) <= 0)){
+	
+	image.set(i,j,pink);
+      
+    }
+
+  }
+  
+  }
+	image.write_tga_file("triangle_rempli.tga");
+	image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+}
+
 void write(TGAImage &image){
- 
+  
+
   for(int i = 0; i<vectF.size(); i+=3){
   
       line(vectV[vectF[i+1]].x*450+500, vectV[vectF[i+1]].y*450+500, vectV[vectF[i]].x*450+500,vectV[vectF[i]].y*450+500,image,pink);
       line(vectV[vectF[i]].x*450+500, vectV[vectF[i]].y*450+500, vectV[vectF[i+2]].x*450+500,vectV[vectF[i+2]].y*450+500,image,pink);
       line(vectV[vectF[i+2]].x*450+500, vectV[vectF[i+2]].y*450+500, vectV[vectF[i+1]].x*450+500,vectV[vectF[i+1]].y*450+500,image,pink);
       
+      remplir_Triangle(vectV[vectF[i+1]].x*450+500,vectV[vectF[i+1]].y*450+500,vectV[vectF[i]].x*450+500,vectV[vectF[i]].y*450+500,vectV[vectF[i+2]].x*450+500,vectV[vectF[i+1]].y*450+500);
   }
 
 }
 
-void remplirTriangles){
- 
-  
-
-}
 int main(int argc, char** argv) {
-	TGAImage image(1000, 1000, TGAImage::RGB);
-	read();
-	write(image);
-	image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
-	image.write_tga_file("wireframe.tga");
-	return 0;
+  
+    TGAImage image(1000, 1000, TGAImage::RGB);
+  
+    read();
+    write(image);
+    
+    //image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+    //image.write_tga_file("wireframe.tga");
+    return 0;
 }
