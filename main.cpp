@@ -6,6 +6,8 @@
 #include <string.h>
 #include <vector>
 #include "vertex.h"
+#include <cstdlib>
+#include <limits>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
@@ -15,6 +17,8 @@ using namespace std;
 
 vector<int> vectF;
 vector<Vertex> vectV;
+float tabZ[1000*1000]; //Tableau de profondeur 
+const Vertex lampe = Vertex(0,0,1); //Lampe en pleine face
 
 //Algorithme de Brensenham
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) { 
@@ -57,7 +61,7 @@ void read(){
 	float res3;
 	float x,y,z;
 	
-        fp = fopen("african_head.obj", "r"); //deuxième arg : Droit
+        fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droit
 	if (fp == NULL)
 		exit(EXIT_FAILURE);
 
@@ -92,13 +96,13 @@ void read(){
 				  res3 = atof(res);
 
 				  if(cnt == 0){
-				    x = res3;
+				    x = (res3+1)*500;
 				  }
 				  if(cnt == 1){
-				    y = res3;
+				    y = (res3+1)*500;
 				  }
 				  if(cnt == 2){			    
-				    z = res3;
+				    z = (res3+1)*500;
 				  }
 				    
 			cnt++;
@@ -128,43 +132,92 @@ void read(){
 
 }
 
-void remplir_Triangle(int x1, int y1, int x2, int y2, int x3, int y3){
+Vertex barycentre(Vertex v1, Vertex v2, Vertex v3, int pointX, int pointY){
   
-  TGAImage image(1000, 1000, TGAImage::RGB);
+	
+	Vertex vt1;
+	vt1.x = v3.x-v1.x;
+	vt1.y = v2.x-v1.x;
+	vt1.z = v1.x-pointX;
+
+	Vertex vt2;
+	vt2.x = v3.y-v1.y;
+	vt2.y = v2.y-v1.y;
+	vt2.z = v1.y-pointY;
+
+	Vertex produit = produit_vectoriel(vt1,vt2);
+	float xt,yt,zt;
+	xt = 1. - (produit.x+produit.y)/produit.z;
+	yt = produit.y/produit.z;
+	zt = produit.x/produit.z;
+
+	produit.x = xt;
+	produit.y = yt;
+	produit.z = zt;
+	
+	return produit;
+
+
+}
+
+void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image){
   
-  line(x1,y1,x2,y2,image,pink);
-  line(x2,y2,x3,y3,image,pink);
-  line(x3,y3,x1,y1,image,pink);
   int i;
   int j;
-  for(i =0; i<1000; i++){
+  i = min(min(v1.x,v2.x),v3.x);
+  //j = min(min(v1.y,v2.y),v3.y); Ne marche pas pour des raisons inconnues. La vérité est ailleurs.
+  int maxI = max(max(v1.x,v2.x),v3.x);
+  int maxJ = max(max(v1.y,v2.y),v3.y);
+  
+  TGAColor random = TGAColor(rand()% 256, rand()% 256, rand()% 256, rand()% 256);
+  
+  //Calcul pour la lumière
+  
+	Vertex vt1;
+	vt1.x = v1.x-v3.x;
+	vt1.y = v1.y-v3.y;
+	vt1.z = v1.z-v3.z;
+
+	Vertex vt2;
+	vt2.x = v2.x-v3.x;
+	vt2.y = v2.y-v3.y;
+	vt2.z = v2.z-v3.z;
+
+
+  
+  Vertex vecteur_normal = produit_vectoriel(vt1,vt2); 
+  vecteur_normal.normalisation(); //Pour avoir les valeurs entre 0 et 1 pour ne pas dépasser 255 par rapport à la couleur
+
+  float lumiere = abs(lampe.x*vecteur_normal.x + lampe.y*vecteur_normal.y + lampe.z*vecteur_normal.z);
+  TGAColor couleur = TGAColor(255*lumiere, 255*lumiere, 255*lumiere, 255*lumiere);
+  
+  for(; i<=maxI; i++){
     
-    for(j=0; j<1000; j++){
+    for(j = 0; j<=maxJ; j++){
+
+	Vertex bary = barycentre(v1,v2,v3,i,j);
 	
-      if(((x1-i)*(y2-j))-((y1-j)*(x2-i)) >= 0 && (((x2-i)*(y3-j))-((y2-j)*(x3-i))) >= 0 && (((x3-i)*(y1-j))-((y3-j)*(x1-i))) >= 0 
-	|| (((x1-i)*(y2-j))-((y1-j)*(x2-i)) <= 0 && (((x2-i)*(y3-j))-((y2-j)*(x3-i))) <= 0 && (((x3-i)*(y1-j))-((y3-j)*(x1-i))) <= 0)){
-	
-	image.set(i,j,pink);
+	if(bary.x >= 0 && bary.y >=0 && bary.z >=0){
+		
+		if(bary.x*v1.z+bary.y*v2.z+bary.z*v3.z > tabZ[i+(1000*j)]){ //Vérifie si le pixel est devant l'ancien dessiné
+		  
+		image.set(i,j,couleur);
+		tabZ[i+(1000*j)] = bary.x*v1.z+bary.y*v2.z+bary.z*v3.z; //Enregistrer la nouvelle profondeur
+		  
+		}
       
     }
 
   }
   
   }
-	image.write_tga_file("triangle_rempli.tga");
-	image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
 }
 
 void write(TGAImage &image){
   
-
   for(int i = 0; i<vectF.size(); i+=3){
   
-      line(vectV[vectF[i+1]].x*450+500, vectV[vectF[i+1]].y*450+500, vectV[vectF[i]].x*450+500,vectV[vectF[i]].y*450+500,image,pink);
-      line(vectV[vectF[i]].x*450+500, vectV[vectF[i]].y*450+500, vectV[vectF[i+2]].x*450+500,vectV[vectF[i+2]].y*450+500,image,pink);
-      line(vectV[vectF[i+2]].x*450+500, vectV[vectF[i+2]].y*450+500, vectV[vectF[i+1]].x*450+500,vectV[vectF[i+1]].y*450+500,image,pink);
-      
-      remplir_Triangle(vectV[vectF[i+1]].x*450+500,vectV[vectF[i+1]].y*450+500,vectV[vectF[i]].x*450+500,vectV[vectF[i]].y*450+500,vectV[vectF[i+2]].x*450+500,vectV[vectF[i+1]].y*450+500);
+      remplir_Triangle(vectV[vectF[i+1]], vectV[vectF[i]] ,vectV[vectF[i+2]],image);
   }
 
 }
@@ -172,11 +225,15 @@ void write(TGAImage &image){
 int main(int argc, char** argv) {
   
     TGAImage image(1000, 1000, TGAImage::RGB);
-  
+    
+    for(int i = 0; i<1000*1000; i++){ //Initialisation du tableau profondeur
+      tabZ[i] = -numeric_limits<float>::max();
+    }
+      
     read();
     write(image);
-    
-    //image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
-    //image.write_tga_file("wireframe.tga");
+	  
+    image.flip_vertically();
+    image.write_tga_file("rempli.tga");
     return 0;
 }
