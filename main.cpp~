@@ -62,8 +62,7 @@ void read(){
   ssize_t read;
   int res2;
   float res3;
-  float res4;
-  float x,y,z,xt,yt,zt;
+  float x,y,z;
 
   fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droit
   if (fp == NULL)
@@ -83,13 +82,32 @@ void read(){
           res2 = atoi(res);
           vectF.push_back(res2-1);
         }
-        if(1==cnt%3){
-          res2 = atoi(res);
-	  vectF2.push_back(res2-1);
-	}
         cnt++;
+
       }
+
+
     }
+
+    if(strchr(line, 'f') && !strchr(line, '#')){
+
+      char *res = strtok(line+2, "/");
+      int cnt = 1;
+      res2 = atoi(res);
+      vectF.push_back(res2-1);
+      while (res = strtok(NULL, "/ ")) {
+        if (1==cnt%3)
+        {
+          res2 = atoi(res);
+          vectF2.push_back(res2-1);
+        }
+        cnt++;
+
+      }
+
+
+    }
+
 
     if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){
 
@@ -100,7 +118,7 @@ void read(){
         res3 = atof(res);
 
         if(cnt == 0){
-          x = (res3+1)*500; // +1 pour ramener à 0
+          x = (res3+1)*500;
         }
         if(cnt == 1){
           y = (res3+1)*500;
@@ -112,37 +130,49 @@ void read(){
         cnt++;
 
       }
+
       vectV.push_back(Vertex(x,y,z));
+
+
     }
-    
-    if(!strchr(line, '#') && strchr(line,'t')){
+    if(strchr(line, 'v') && !strchr(line, '#') && strchr(line,'t')){
 
       char *res = strtok(line, " ");
 
       int cnt = 0;
       while (res = strtok(NULL, " ")) {
-        res4 = atof(res);
+        res3 = atof(res);
 
         if(cnt == 0){
-          xt = (res4);
+          x = (res3+1);
         }
         if(cnt == 1){
-          yt = (res4);
+          y = (res3+1);
         }
         if(cnt == 2){
-          zt = (res4);
+          z = (res3+1);
         }
 
         cnt++;
       }
-      vectT.push_back(Vertex(xt,yt,zt));
     }
-    
+
+    vectT.push_back(Vertex(x,y,z));
   }
 
-  fclose(fp);
-  if (line)
-    free(line);
+  /*for (int i : vectF){
+
+  cout << i << endl;
+}
+
+for(Vertex x: vectV){
+
+cout << x.x << " " << x.y << " " << x.z << endl;
+}*/
+
+fclose(fp);
+if (line)
+free(line);
 
 }
 
@@ -195,6 +225,8 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
   vt2.y = v2.y-v3.y;
   vt2.z = v2.z-v3.z;
 
+
+
   Vertex vecteur_normal = produit_vectoriel(vt1,vt2);
   vecteur_normal.normalisation(); //Pour avoir les valeurs entre 0 et 1 pour ne pas dépasser 255 par rapport à la couleur
 
@@ -210,13 +242,11 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
       if(bary.x >= 0 && bary.y >=0 && bary.z >=0){
 
         if(bary.x*v1.z+bary.y*v2.z+bary.z*v3.z > tabZ[i+(1000*j)]){ //Vérifie si le pixel est devant l'ancien dessiné
-	int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z)) *texture.get_width();
-        int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z)) *texture.get_height();
+
+        int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z) )*texture.get_width();
+        int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z))*texture.get_height();
         couleur = texture.get(pix_x,pix_y);
-	
-	couleur.r *= lumiere; /*Luminosité sur les textures*/
-	couleur.g *= lumiere;
-	couleur.b *= lumiere;
+
 
         tabZ[i+(1000*j)] = bary.x*v1.z+bary.y*v2.z+bary.z*v3.z; //Enregistrer la nouvelle profondeur
         image.set(i,j,couleur);
@@ -233,7 +263,8 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 void write(TGAImage &image){
 
   for(int i = 0; i<vectF.size(); i+=3){
-    remplir_Triangle(vectV[vectF[i]], vectV[vectF[i+1]] ,vectV[vectF[i+2]],image,texture,vectT[vectF2[i]], vectT[vectF2[i+1]], vectT[vectF2[i+2]]);
+
+    remplir_Triangle(vectV[vectF[i+1]], vectV[vectF[i]] ,vectV[vectF[i+2]],image,texture,vectT[vectF2[i+1]], vectT[vectF2[i]], vectT[vectF2[i+2]]);
   }
 
 }
@@ -248,7 +279,6 @@ int main(int argc, char** argv) {
 
   read();
   texture.read_tga_file("diablo3_pose_diffuse.tga"); //lire texture
-  texture.flip_vertically();
 
   write(image);
 
