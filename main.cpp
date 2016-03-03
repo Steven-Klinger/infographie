@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <limits>
 #include "Matrice.h"
+#include <cassert>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
@@ -68,7 +69,7 @@ void read(){
   float res4;
   float x,y,z,xt,yt,zt;
 
-  fp = fopen("body.obj", "r"); //deuxième arg : Droit
+  fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droit
   if (fp == NULL)
   exit(EXIT_FAILURE);
 
@@ -206,6 +207,20 @@ Vertex barycentre(Vertex v1, Vertex v2, Vertex v3, int pointX, int pointY){
 
 void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, Vertex vtex1, Vertex vtex2, Vertex vtex3){
 
+  double alpha = 45 * M_PI/180;
+
+  Matrice44 rotation;
+  rotation.identity();
+
+  rotation.setM(0,0,cos(alpha));
+  rotation.setM(0,2,-sin(alpha));
+  rotation.setM(2,0,sin(alpha));
+  rotation.setM(2,2,cos(alpha));
+
+  v1 = rotation*v1;
+  v2 = rotation*v2;
+  v3 = rotation*v3;
+
   int i;
   int j;
   i = min(min(v1.x,v2.x),v3.x);
@@ -282,27 +297,13 @@ int main(int argc, char** argv) {
   }
 
   read();
-  texture.read_tga_file("obj/body_diffuse.tga"); //lire texture
+  texture.read_tga_file("obj/diablo3_pose_diffuse.tga"); //lire texture
   texture.flip_vertically();
 
   write(image);
 
   image.flip_vertically();
   image.write_tga_file("rempli.tga");
-
-  /*Matrice44 lol;
-  Vertex lol2;
-  lol2.x = 4;
-  lol2.y = 7;
-  lol2.z = 98;
-
-  Vertex swag = lol*lol2;
-
-  cout << swag.x << " " << swag.y << " " << swag.z << " " << endl;*/
-
-  Matrice44 id;
-  id.identity();
-  id.showM();
 
   return 0;
 }

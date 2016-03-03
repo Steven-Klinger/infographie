@@ -21,12 +21,12 @@ public:
         for(int i =0; i<4; i++){
 
            tab2[i] = tab[i][0]*(vertex.x) + tab[i][1]*(vertex.y) + tab[i][2]*(vertex.z) + tab[i][3];
-            cout << tab2[i] << endl;
         }
 
         res.x = tab2[0] / tab2[3];
         res.y = tab2[1] / tab2[3];
         res.z = tab2[2] / tab2[3];
+
 
         return res;
 
@@ -65,11 +65,23 @@ public:
     }
 
     void showM(){
-
+        for (int i=0; i<4; i++) {
+            for (int j=0; j<4; j++) {
+                cout << tab[i][j] << (j<3 ? " | " : "");
+            }
+            cout << endl;
+        }
+/*
         cout << tab[0][0] << " | " << tab[0][1] << " | " << tab[0][2] << " | " << tab[0][3] << endl;
         cout << tab[1][0] << " | " << tab[1][1] << " | " << tab[1][2] << " | " << tab[1][3] << endl;
         cout << tab[2][0] << " | " << tab[2][1] << " | " << tab[2][2] << " | " << tab[2][3] << endl;
         cout << tab[3][0] << " | " << tab[3][1] << " | " << tab[3][2] << " | " << tab[3][3] << endl;
+*/
+    }
+
+    void setM(int ligne, int colonne, float valeur){
+
+        tab[ligne][colonne] = valeur;
 
     }
 };
