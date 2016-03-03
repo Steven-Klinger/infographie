@@ -300,7 +300,9 @@ int main(int argc, char** argv) {
 
   cout << swag.x << " " << swag.y << " " << swag.z << " " << endl;*/
 
-
+  Matrice44 id;
+  id.identity();
+  id.showM();
 
   return 0;
 }

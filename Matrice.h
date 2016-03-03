@@ -1,5 +1,6 @@
 #include "vertex.h"
-#include <stdio.h>
+#include <cstdio>
+#include <iostream>
 
 using namespace std;
 
@@ -9,7 +10,7 @@ public:
 
     float tab[4][4];
 
-    Matrice44():tab{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}{}
+    Matrice44():tab{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}{}
 
     Vertex operator*(const Vertex &vertex){ //multiplier une matrice par un vertex
 
@@ -52,18 +53,23 @@ public:
 
     }
 
-    Matrice44 identity(int k){
+    void identity(){
 
-        float res[4][4];
+        for(int i=0; i<4; i++){
 
-        for(int i=0; i<k; i++){
-           for(int j=0; j<k; j++){
+                tab[i][i] = 1;
 
-                res[i][j] = 1;
 
-           }
+        }
 
     }
 
-}
+    void showM(){
+
+        cout << tab[0][0] << " | " << tab[0][1] << " | " << tab[0][2] << " | " << tab[0][3] << endl;
+        cout << tab[1][0] << " | " << tab[1][1] << " | " << tab[1][2] << " | " << tab[1][3] << endl;
+        cout << tab[2][0] << " | " << tab[2][1] << " | " << tab[2][2] << " | " << tab[2][3] << endl;
+        cout << tab[3][0] << " | " << tab[3][1] << " | " << tab[3][2] << " | " << tab[3][3] << endl;
+
+    }
 };
