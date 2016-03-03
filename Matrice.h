@@ -31,6 +31,39 @@ public:
 
     }
 
+    Matrice44 multiplyM(Matrice44 m1, Matrice44 m2){
+
+         float res[4][4];
+
+         for(int i=0; i<4; i++){
+            for(int j=0; j<4; j++){
+                res[i][j] = 0;
+                for(int k = 0; k<4; k++){
+
+                    res[i][j] += m1.tab[i][k] * m2.tab[k][j];
+
+                }
 
 
+            }
+
+
+         }
+
+    }
+
+    Matrice44 identity(int k){
+
+        float res[4][4];
+
+        for(int i=0; i<k; i++){
+           for(int j=0; j<k; j++){
+
+                res[i][j] = 1;
+
+           }
+
+    }
+
+}
 };

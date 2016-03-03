@@ -11,7 +11,7 @@
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
-const TGAColor pink= TGAColor(180, 15, 178, 147);
+const TGAColor pink  = TGAColor(180, 15, 178,  147);
 
 using namespace std;
 
@@ -19,6 +19,8 @@ vector<int> vectF;
 vector<Vertex> vectV;
 vector<Vertex> vectT;
 vector<int> vectF2;
+vector<Vertex> vectVN;
+
 float* tabZ; //Tableau de profondeur
 const Vertex lampe = Vertex(0,0,1); //Lampe en pleine face
 const Vertex camera = Vertex(0,0,1);
@@ -114,6 +116,31 @@ void read(){
 
       }
       vectV.push_back(Vertex(x,y,z));
+    }
+    }
+
+    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){
+           if(strchr(line, 'n')){
+      char *res = strtok(line, " ");
+
+      int cnt = 0;
+      while (res = strtok(NULL, " ")) {
+        res3 = atof(res);
+
+        if(cnt == 0){
+          x = (res3+1)*500; // +1 pour ramener à 0
+        }
+        if(cnt == 1){
+          y = (res3+1)*500;
+        }
+        if(cnt == 2){
+          z = (res3+1)*500;
+        }
+
+        cnt++;
+
+      }
+      vectVN.push_back(Vertex(x,y,z));
     }
     }
     
@@ -263,7 +290,7 @@ int main(int argc, char** argv) {
   image.flip_vertically();
   image.write_tga_file("rempli.tga");
 
-  Matrice44 lol;
+  /*Matrice44 lol;
   Vertex lol2;
   lol2.x = 4;
   lol2.y = 7;
@@ -271,7 +298,9 @@ int main(int argc, char** argv) {
 
   Vertex swag = lol*lol2;
 
-  cout << swag.x << " " << swag.y << " " << swag.z << " " << endl;
+  cout << swag.x << " " << swag.y << " " << swag.z << " " << endl;*/
+
+
 
   return 0;
 }
