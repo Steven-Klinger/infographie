@@ -32,16 +32,16 @@ public:
 
     }
 
-    Matrice44 multiplyM(Matrice44 m1, Matrice44 m2){
+    Matrice44 operator*(Matrice44 m){
 
-         float res[4][4];
+         Matrice44 res;
 
          for(int i=0; i<4; i++){
             for(int j=0; j<4; j++){
-                res[i][j] = 0;
+                res.tab[i][j] = 0;
                 for(int k = 0; k<4; k++){
 
-                    res[i][j] += m1.tab[i][k] * m2.tab[k][j];
+                    res.tab[i][j] += tab[i][k] * m.tab[k][j];
 
                 }
 
@@ -50,6 +50,7 @@ public:
 
 
          }
+            return res;
 
     }
 

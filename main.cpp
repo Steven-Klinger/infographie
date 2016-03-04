@@ -25,6 +25,7 @@ vector<Vertex> vectVN;
 float* tabZ; //Tableau de profondeur
 const Vertex lampe = Vertex(0,0,1); //Lampe en pleine face
 const Vertex camera = Vertex(0,0,1);
+Matrice44 viewport;
 TGAImage texture;
 
 //Algorithme de Brensenham
@@ -66,7 +67,7 @@ void read(){
   ssize_t read;
   int res2;
   float res3;
-  float res4;
+  float res4;  Matrice44 viewport;
   float x,y,z,xt,yt,zt;
 
   fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droit
@@ -104,13 +105,13 @@ void read(){
         res3 = atof(res);
 
         if(cnt == 0){
-          x = (res3+1)*500; // +1 pour ramener à 0
+          x = (res3); // +1 pour ramener à 0
         }
         if(cnt == 1){
-          y = (res3+1)*500;
+          y = (res3);
         }
         if(cnt == 2){
-          z = (res3+1)*500;
+          z = (res3);
         }
 
         cnt++;
@@ -120,7 +121,7 @@ void read(){
     }
     }
 
-    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){
+    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ //Lecture des vn
            if(strchr(line, 'n')){
       char *res = strtok(line, " ");
 
@@ -129,13 +130,13 @@ void read(){
         res3 = atof(res);
 
         if(cnt == 0){
-          x = (res3+1)*500; // +1 pour ramener à 0
+          x = (res3);
         }
         if(cnt == 1){
-          y = (res3+1)*500;
+          y = (res3);
         }
         if(cnt == 2){
-          z = (res3+1)*500;
+          z = (res3);
         }
 
         cnt++;
@@ -207,30 +208,6 @@ Vertex barycentre(Vertex v1, Vertex v2, Vertex v3, int pointX, int pointY){
 
 void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, Vertex vtex1, Vertex vtex2, Vertex vtex3){
 
-  double alpha = 45 * M_PI/180;
-
-  Matrice44 rotation;
-  rotation.identity();
-
-  rotation.setM(0,0,cos(alpha));
-  rotation.setM(0,2,-sin(alpha));
-  rotation.setM(2,0,sin(alpha));
-  rotation.setM(2,2,cos(alpha));
-
-  v1 = rotation*v1;
-  v2 = rotation*v2;
-  v3 = rotation*v3;
-
-  int i;
-  int j;
-  i = min(min(v1.x,v2.x),v3.x);
-  //j = min(min(v1.y,v2.y),v3.y); //Ne marche pas pour des raisons inconnues. La vérité est ailleurs.
-  int maxI = max(max(v1.x,v2.x),v3.x);
-  int maxJ = max(max(v1.y,v2.y),v3.y);
-
-  //cout << v1.y << " " << v2.y << " " << v3.y << "  J: " << j << " MAXJ: " << maxJ << endl;
-  //Calcul pour la lumière
-
   Vertex vt1;
   vt1.x = v1.x-v3.x;
   vt1.y = v1.y-v3.y;
@@ -243,8 +220,34 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
   Vertex vecteur_normal = produit_vectoriel(vt1,vt2);
   vecteur_normal.normalisation(); //Pour avoir les valeurs entre 0 et 1 pour ne pas dépasser 255 par rapport à la couleur
+//  float lumiere = abs(lampe.x*vecteur_normal.x + lampe.y*vecteur_normal.y + lampe.z*vecteur_normal.z);
+  float lumiere = max((double)(.4 + lampe.x*vecteur_normal.x + lampe.y*vecteur_normal.y + lampe.z*vecteur_normal.z),0.);
+  cout << lumiere <<endl;
 
-  float lumiere = abs(lampe.x*vecteur_normal.x + lampe.y*vecteur_normal.y + lampe.z*vecteur_normal.z);
+  double alpha = 45 * M_PI/180;
+
+  Matrice44 rotation;
+  rotation.identity();
+
+  rotation.setM(0,0,cos(alpha));
+  rotation.setM(0,2,-sin(alpha));
+  rotation.setM(2,0,sin(alpha));
+  rotation.setM(2,2,cos(alpha));
+
+  v1 = viewport*rotation*v1;
+  v2 = viewport*rotation*v2;
+  v3 = viewport*rotation*v3;
+
+  int i;
+  int j;
+  i = min(min(v1.x,v2.x),v3.x);
+  //j = min(min(v1.y,v2.y),v3.y); //Ne marche pas pour des raisons inconnues. La vérité est ailleurs.
+  int maxI = max(max(v1.x,v2.x),v3.x);
+  int maxJ = max(max(v1.y,v2.y),v3.y);
+
+  //cout << v1.y << " " << v2.y << " " << v3.y << "  J: " << j << " MAXJ: " << maxJ << endl;
+  //Calcul pour la lumière
+
   TGAColor couleur;
 
   for(; i<=maxI; i++){
@@ -259,6 +262,7 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
             int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z)) *texture.get_width();
             int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z)) *texture.get_height();
+
 
             couleur = texture.get(pix_x,pix_y);
 	
@@ -288,7 +292,18 @@ void write(TGAImage &image){
 
 int main(int argc, char** argv) {
 
+
   TGAImage image(1000, 1000, TGAImage::RGB);
+
+  viewport.identity();
+
+  viewport.setM(0,3, image.get_width()/2.f);
+  viewport.setM(1,3, image.get_height()/2.f);
+  viewport.setM(2,3, 1);
+
+  viewport.setM(0,0, image.get_width()/2.f);
+  viewport.setM(1,1, image.get_height()/2.f);
+  viewport.setM(2,2, 1);
 
   tabZ = (float*)malloc(image.get_height()*image.get_width()*sizeof(float));
 
