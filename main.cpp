@@ -10,10 +10,6 @@
 #include "Matrice.h"
 #include <cassert>
 
-const TGAColor white = TGAColor(255, 255, 255, 255);
-const TGAColor red   = TGAColor(255, 0,   0,   255);
-const TGAColor pink  = TGAColor(180, 15, 178,  147);
-
 using namespace std;
 
 vector<int> vectF;
@@ -23,7 +19,7 @@ vector<int> vectF2;
 vector<Vertex> vectVN;
 
 float* tabZ; //Tableau de profondeur
-const Vertex lampe = Vertex(0,0,1); //Lampe en pleine face
+const Vertex lampe = Vertex(0,1,1); //Lampe en pleine face
 const Vertex camera = Vertex(0,0,1);
 Matrice44 viewport;
 TGAImage texture;
@@ -59,7 +55,7 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
   }
 }
 
-void read(){
+void read(){ /*Lecture des .obj*/
 
   FILE * fp;
   char * line = NULL;
@@ -70,13 +66,13 @@ void read(){
   float res4;  Matrice44 viewport;
   float x,y,z,xt,yt,zt;
 
-  fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droit
+  fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droits
   if (fp == NULL)
   exit(EXIT_FAILURE);
 
   while ((read = getline(&line, &len, fp)) != -1) {
 
-    if(strchr(line, 'f') && !strchr(line, '#')){
+    if(strchr(line, 'f') && !strchr(line, '#')){ /*Récupérer les faces*/
 
       char *res = strtok(line+2, "/");
       int cnt = 1;
@@ -96,7 +92,7 @@ void read(){
       }
     }
 
-    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){
+    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ /*Récupérer les points (vertex)*/
            if(!strchr(line, 'n')){
       char *res = strtok(line, " ");
 
@@ -121,7 +117,7 @@ void read(){
     }
     }
 
-    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ //Lecture des vn
+    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ /*Récupérer les coordonnées normales*/
            if(strchr(line, 'n')){
       char *res = strtok(line, " ");
 
@@ -146,7 +142,7 @@ void read(){
     }
     }
     
-    if(!strchr(line, '#') && strchr(line,'t')){
+    if(!strchr(line, '#') && strchr(line,'t')){ /*Récupérer les coordonnées de texture*/
            if(!strchr(line, 'n')){
 
       char *res = strtok(line, " ");
@@ -220,9 +216,7 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
   Vertex vecteur_normal = produit_vectoriel(vt1,vt2);
   vecteur_normal.normalisation(); //Pour avoir les valeurs entre 0 et 1 pour ne pas dépasser 255 par rapport à la couleur
-//  float lumiere = abs(lampe.x*vecteur_normal.x + lampe.y*vecteur_normal.y + lampe.z*vecteur_normal.z);
   float lumiere = max((double)(.4 + lampe.x*vecteur_normal.x + lampe.y*vecteur_normal.y + lampe.z*vecteur_normal.z),0.);
-  cout << lumiere <<endl;
 
   double alpha = 45 * M_PI/180;
 
@@ -245,9 +239,6 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
   int maxI = max(max(v1.x,v2.x),v3.x);
   int maxJ = max(max(v1.y,v2.y),v3.y);
 
-  //cout << v1.y << " " << v2.y << " " << v3.y << "  J: " << j << " MAXJ: " << maxJ << endl;
-  //Calcul pour la lumière
-
   TGAColor couleur;
 
   for(; i<=maxI; i++){
@@ -265,10 +256,10 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
 
             couleur = texture.get(pix_x,pix_y);
-	
-            couleur.r *= lumiere; /*Luminosité sur les textures*/
-            couleur.g *= lumiere;
-            couleur.b *= lumiere;
+	          
+            couleur.r = min((double)couleur.r*lumiere, 255.);
+            couleur.g = min((double)couleur.g*lumiere, 255.);
+            couleur.b = min((double)couleur.b*lumiere, 255.);
 
             tabZ[i+(image.get_width()*j)] = bary.x*v1.z+bary.y*v2.z+bary.z*v3.z; //Enregistrer la nouvelle profondeur
             image.set(i,j,couleur);
