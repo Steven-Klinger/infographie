@@ -217,7 +217,7 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
   Vertex vt2;
   vt2 = v2 - v3;  
 
-  double alpha = 45 * M_PI/180;
+  double alpha = 1 * M_PI/180;
 
   Matrice44 rotation;
   rotation.identity();
@@ -239,6 +239,7 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
   int maxJ = max(max(v1.y,v2.y),v3.y);
 
   TGAColor couleur;
+  TGAColor couleur_base;
 
   for(; i<=maxI; i++){
 
@@ -250,23 +251,30 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
         if(bary.x*v1.z+bary.y*v2.z+bary.z*v3.z > tabZ[i+(image.get_width()*j)]){ //Vérifie si le pixel est devant l'ancien dessiné
 
-            Vertex vn = bary.x * vn1 + bary.y * vn2 + bary.z * vn3;
+            Vertex vn_gouraud = bary.x * vn1 + bary.y * vn2 + bary.z * vn3;//gouraud
+
+            int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z)) *nm.get_width();
+            int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z)) *nm.get_height();
+
+            couleur = (nm.get(pix_x,pix_y));
+
+            Vertex vn;
+            vn.x = couleur.b;
+            vn.y = couleur.r;
+            vn.z = couleur.g;
+
+            vn = vn*vn_gouraud;
             vn.normalisation();
-         
             float lumiere = max((double)(.2 + lampe.x*vn.x + lampe.y*vn.y + lampe.z*vn.z),0.);
 
-            int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z)) *texture.get_width();
-            int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z)) *texture.get_height();
 
-
-            couleur = (texture.get(pix_x,pix_y));
-	          
-            couleur.r = min((double)couleur.r*lumiere, 255.);
-            couleur.g = min((double)couleur.g*lumiere, 255.);
-            couleur.b = min((double)couleur.b*lumiere, 255.);
+            couleur_base = (texture.get(pix_x, pix_y));
+            couleur_base.r = min((double)couleur_base.r*lumiere, 255.);
+            couleur_base.g = min((double)couleur_base.g*lumiere, 255.);
+            couleur_base.b = min((double)couleur_base.b*lumiere, 255.);
 
             tabZ[i+(image.get_width()*j)] = bary.x*v1.z+bary.y*v2.z+bary.z*v3.z; //Enregistrer la nouvelle profondeur
-            image.set(i,j,couleur);
+            image.set(i,j,couleur_base);
 
       }
 
@@ -315,7 +323,7 @@ void write(TGAImage &image){
   write(image);
 
   image.flip_vertically();
-  image.write_tga_file("rempli.tga");
+  image.write_tga_file("rendu.tga");
 
   return 0;
 }
