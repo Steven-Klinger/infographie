@@ -16,13 +16,15 @@ vector<int> vectF;
 vector<Vertex> vectV;
 vector<Vertex> vectT;
 vector<int> vectF2;
+vector<int> vectF3;
 vector<Vertex> vectVN;
 
 float* tabZ; //Tableau de profondeur
-const Vertex lampe = Vertex(0,1,1); //Lampe en pleine face
+const Vertex lampe = Vertex(0,0,1); //Lampe en pleine face
 const Vertex camera = Vertex(0,0,1);
 Matrice44 viewport;
 TGAImage texture;
+TGAImage nm;
 
 //Algorithme de Brensenham
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
@@ -66,7 +68,7 @@ void read(){ /*Lecture des .obj*/
   float res4;  Matrice44 viewport;
   float x,y,z,xt,yt,zt;
 
-  fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droits
+  fp = fopen("african_head.obj", "r"); //deuxième arg : Droits
   if (fp == NULL)
   exit(EXIT_FAILURE);
 
@@ -87,7 +89,12 @@ void read(){ /*Lecture des .obj*/
         if(1==cnt%3){
           res2 = atoi(res);
           vectF2.push_back(res2-1);
-	}
+
+	      }
+        if(2==cnt%3){
+          res2 = atoi(res);
+          vectF3.push_back(res2-1);
+        }
         cnt++;
       }
     }
@@ -202,21 +209,13 @@ Vertex barycentre(Vertex v1, Vertex v2, Vertex v3, int pointX, int pointY){
 
 }
 
-void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, Vertex vtex1, Vertex vtex2, Vertex vtex3){
+void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, Vertex vtex1, Vertex vtex2, Vertex vtex3, Vertex vn1, Vertex vn2, Vertex vn3, TGAImage &nm){
 
   Vertex vt1;
-  vt1.x = v1.x-v3.x;
-  vt1.y = v1.y-v3.y;
-  vt1.z = v1.z-v3.z;
+  vt1 = v1 - v3;
 
   Vertex vt2;
-  vt2.x = v2.x-v3.x;
-  vt2.y = v2.y-v3.y;
-  vt2.z = v2.z-v3.z;
-
-  Vertex vecteur_normal = produit_vectoriel(vt1,vt2);
-  vecteur_normal.normalisation(); //Pour avoir les valeurs entre 0 et 1 pour ne pas dépasser 255 par rapport à la couleur
-  float lumiere = max((double)(.4 + lampe.x*vecteur_normal.x + lampe.y*vecteur_normal.y + lampe.z*vecteur_normal.z),0.);
+  vt2 = v2 - v3;  
 
   double alpha = 45 * M_PI/180;
 
@@ -251,11 +250,16 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
         if(bary.x*v1.z+bary.y*v2.z+bary.z*v3.z > tabZ[i+(image.get_width()*j)]){ //Vérifie si le pixel est devant l'ancien dessiné
 
+            Vertex vn = bary.x * vn1 + bary.y * vn2 + bary.z * vn3;
+            vn.normalisation();
+         
+            float lumiere = max((double)(.2 + lampe.x*vn.x + lampe.y*vn.y + lampe.z*vn.z),0.);
+
             int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z)) *texture.get_width();
             int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z)) *texture.get_height();
 
 
-            couleur = texture.get(pix_x,pix_y);
+            couleur = (texture.get(pix_x,pix_y));
 	          
             couleur.r = min((double)couleur.r*lumiere, 255.);
             couleur.g = min((double)couleur.g*lumiere, 255.);
@@ -276,13 +280,13 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 void write(TGAImage &image){
 
   for(int i = 0; i<vectF.size(); i+=3){
-      remplir_Triangle(vectV[vectF[i]], vectV[vectF[i+1]] ,vectV[vectF[i+2]],image,texture,vectT[vectF2[i]], vectT[vectF2[i+1]], vectT[vectF2[i+2]]);
+      remplir_Triangle(vectV[vectF[i]], vectV[vectF[i+1]] ,vectV[vectF[i+2]],image,texture,
+        vectT[vectF2[i]], vectT[vectF2[i+1]], vectT[vectF2[i+2]], 
+        vectVN[vectF3[i]],vectVN[vectF3[i+1]], vectVN[vectF3[i+2]],nm );
   }
-
+  
 }
-
-int main(int argc, char** argv) {
-
+  int main(int argc, char** argv) {
 
   TGAImage image(1000, 1000, TGAImage::RGB);
 
@@ -303,8 +307,10 @@ int main(int argc, char** argv) {
   }
 
   read();
-  texture.read_tga_file("obj/diablo3_pose_diffuse.tga"); //lire texture
+  texture.read_tga_file("obj/african_head_diffuse.tga"); //lire texture
   texture.flip_vertically();
+  nm.read_tga_file("obj/african_head_nm.tga"); //lire normal mapping
+  nm.flip_vertically();
 
   write(image);
 
