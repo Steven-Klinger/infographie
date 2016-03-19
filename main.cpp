@@ -21,10 +21,11 @@ vector<Vertex> vectVN;
 
 float* tabZ; //Tableau de profondeur
 const Vertex lampe = Vertex(0,0,1); //Lampe en pleine face
-const Vertex camera = Vertex(0,0,1);
+const Vertex camera = Vertex(0,0,1); 
 Matrice44 viewport;
 TGAImage texture;
-TGAImage nm;
+TGAImage nm; //normal mapping
+TGAImage spec; //specular map
 
 //Algorithme de Brensenham
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
@@ -57,7 +58,7 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
   }
 }
 
-void read(){ /*Lecture des .obj*/
+void read(){ //Lecture des .obj
 
   FILE * fp;
   char * line = NULL;
@@ -74,7 +75,7 @@ void read(){ /*Lecture des .obj*/
 
   while ((read = getline(&line, &len, fp)) != -1) {
 
-    if(strchr(line, 'f') && !strchr(line, '#')){ /*Récupérer les faces*/
+    if(strchr(line, 'f') && !strchr(line, '#')){ //Récupérer les faces
 
       char *res = strtok(line+2, "/");
       int cnt = 1;
@@ -99,7 +100,7 @@ void read(){ /*Lecture des .obj*/
       }
     }
 
-    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ /*Récupérer les points (vertex)*/
+    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ //Récupérer les points (vertex)
            if(!strchr(line, 'n')){
       char *res = strtok(line, " ");
 
@@ -124,7 +125,7 @@ void read(){ /*Lecture des .obj*/
     }
     }
 
-    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ /*Récupérer les coordonnées normales*/
+    if(strchr(line, 'v') && !strchr(line, '#') && !strchr(line,'t')){ //Récupérer les coordonnées normales
            if(strchr(line, 'n')){
       char *res = strtok(line, " ");
 
@@ -149,7 +150,7 @@ void read(){ /*Lecture des .obj*/
     }
     }
     
-    if(!strchr(line, '#') && strchr(line,'t')){ /*Récupérer les coordonnées de texture*/
+    if(!strchr(line, '#') && strchr(line,'t')){ //Récupérer les coordonnées de texture
            if(!strchr(line, 'n')){
 
       char *res = strtok(line, " ");
@@ -209,7 +210,8 @@ Vertex barycentre(Vertex v1, Vertex v2, Vertex v3, int pointX, int pointY){
 
 }
 
-void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, Vertex vtex1, Vertex vtex2, Vertex vtex3, Vertex vn1, Vertex vn2, Vertex vn3, TGAImage &nm){
+void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, 
+  Vertex vtex1, Vertex vtex2, Vertex vtex3, Vertex vn1, Vertex vn2, Vertex vn3, TGAImage &nm, TGAImage &spec, int angle){
 
   Vertex vt1;
   vt1 = v1 - v3;
@@ -217,7 +219,7 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
   Vertex vt2;
   vt2 = v2 - v3;  
 
-  double alpha = 1 * M_PI/180;
+  double alpha = angle * M_PI/180; // angle de rotation
 
   Matrice44 rotation;
   rotation.identity();
@@ -240,10 +242,11 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
   TGAColor couleur;
   TGAColor couleur_base;
+  TGAColor couleur_spec;
 
   for(; i<=maxI; i++){
 
-    for(j=0; j<=maxJ; j++){  //Ne marche pas pour des raisons inconnues. La vérité est ailleurs. Donc j=0
+    for(j=0; j<=maxJ; j++){  // (; ...) Ne marche pas pour des raisons inconnues. La vérité est ailleurs. Donc j=0.
 
       Vertex bary = barycentre(v1,v2,v3,i,j);
 
@@ -251,22 +254,28 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
         if(bary.x*v1.z+bary.y*v2.z+bary.z*v3.z > tabZ[i+(image.get_width()*j)]){ //Vérifie si le pixel est devant l'ancien dessiné
 
-            Vertex vn_gouraud = bary.x * vn1 + bary.y * vn2 + bary.z * vn3;//gouraud
+            Vertex gouraud = bary.x * vn1 + bary.y * vn2 + bary.z * vn3;//gouraud
 
             int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z)) *nm.get_width();
             int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z)) *nm.get_height();
 
             couleur = (nm.get(pix_x,pix_y));
+            couleur_spec = (spec.get(pix_x,pix_y));
 
-            Vertex vn;
-            vn.x = couleur.b;
-            vn.y = couleur.r;
-            vn.z = couleur.g;
+            Vertex normal_map; //normal map
+            normal_map.x = couleur.b;
+            normal_map.y = couleur.r;
+            normal_map.z = couleur.g;
 
-            vn = vn*vn_gouraud;
-            vn.normalisation();
-            float lumiere = max((double)(.2 + lampe.x*vn.x + lampe.y*vn.y + lampe.z*vn.z),0.);
+            /*Vertex spec;
+            spec.x = couleur_spec.b;
+            spec.y = couleur_spec.r;
+            spec.z = couleur_spec.g;*/
 
+            normal_map = normal_map*gouraud;
+            normal_map.normalisation();
+
+            float lumiere = max((double)(.2 + lampe.x*normal_map.x + lampe.y*normal_map.y + lampe.z*normal_map.z),0.);
 
             couleur_base = (texture.get(pix_x, pix_y));
             couleur_base.r = min((double)couleur_base.r*lumiere, 255.);
@@ -285,20 +294,19 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 }
 }
 
-void write(TGAImage &image){
+void write(TGAImage &image, int angle){
 
   for(int i = 0; i<vectF.size(); i+=3){
       remplir_Triangle(vectV[vectF[i]], vectV[vectF[i+1]] ,vectV[vectF[i+2]],image,texture,
         vectT[vectF2[i]], vectT[vectF2[i+1]], vectT[vectF2[i+2]], 
-        vectVN[vectF3[i]],vectVN[vectF3[i+1]], vectVN[vectF3[i+2]],nm );
+        vectVN[vectF3[i]],vectVN[vectF3[i+1]], vectVN[vectF3[i+2]],nm,spec,angle);
   }
   
 }
-  int main(int argc, char** argv) {
 
-  TGAImage image(1000, 1000, TGAImage::RGB);
+void reglage(TGAImage &image){
 
-  viewport.identity();
+viewport.identity();
 
   viewport.setM(0,3, image.get_width()/2.f);
   viewport.setM(1,3, image.get_height()/2.f);
@@ -308,22 +316,43 @@ void write(TGAImage &image){
   viewport.setM(1,1, image.get_height()/2.f);
   viewport.setM(2,2, 1);
 
-  tabZ = (float*)malloc(image.get_height()*image.get_width()*sizeof(float));
+  tabZ = (float*)malloc(image.get_height()*image.get_width()*sizeof(float)); //Z-Buffer
 
   for(int i = 0; i<image.get_height()*image.get_width(); i++){ //Initialisation du tableau profondeur
     tabZ[i] = -numeric_limits<float>::max();
   }
+
+}
+
+
+  int main(int argc, char** argv) {
+
+  TGAImage image(1000, 1000, TGAImage::RGB);
+  TGAImage image2(1000, 1000, TGAImage::RGB);
+  TGAImage image3(1000, 1000, TGAImage::RGB);
 
   read();
   texture.read_tga_file("obj/african_head_diffuse.tga"); //lire texture
   texture.flip_vertically();
   nm.read_tga_file("obj/african_head_nm.tga"); //lire normal mapping
   nm.flip_vertically();
+  spec.read_tga_file("obj/african_head_spec.tga"); //lire specular
+  spec.flip_vertically();
 
-  write(image);
-
+  reglage(image);
+  write(image,1);
   image.flip_vertically();
-  image.write_tga_file("rendu.tga");
+  image.write_tga_file("Rendu_Face.tga");
+
+  reglage(image2);
+  write(image2,45);
+  image2.flip_vertically();
+  image2.write_tga_file("Rendu_45.tga");
+  
+  reglage(image3);
+  write(image3,90);
+  image3.flip_vertically();
+  image3.write_tga_file("Rendu_90.tga");
 
   return 0;
 }
