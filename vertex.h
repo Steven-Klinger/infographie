@@ -26,6 +26,34 @@ Vertex produit_vectoriel(Vertex v1, Vertex v2){
     return produit;
   }  
 
+
+Vertex barycentre(Vertex v1, Vertex v2, Vertex v3, int pointX, int pointY){
+
+  Vertex vt1;
+  vt1.x = v3.x-v1.x;
+  vt1.y = v2.x-v1.x;
+  vt1.z = v1.x-pointX;
+
+  Vertex vt2;
+  vt2.x = v3.y-v1.y;
+  vt2.y = v2.y-v1.y;
+  vt2.z = v1.y-pointY;
+
+  Vertex produit = produit_vectoriel(vt1,vt2);
+  float xt,yt,zt;
+  xt = 1. - (produit.x+produit.y)/produit.z;
+  yt = produit.y/produit.z;
+  zt = produit.x/produit.z;
+
+  produit.x = xt;
+  produit.y = yt;
+  produit.z = zt;
+
+  return produit;
+
+
+}
+
 Vertex operator*(const Vertex &v1,const Vertex &v2){
 
     Vertex res;

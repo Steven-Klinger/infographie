@@ -9,6 +9,7 @@
 #include <limits>
 #include "Matrice.h"
 #include <cassert>
+#include "Bresenham.h"
 
 using namespace std;
 
@@ -25,38 +26,6 @@ const Vertex camera = Vertex(0,0,1);
 Matrice44 viewport;
 TGAImage texture;
 TGAImage nm; //normal mapping
-TGAImage spec; //specular map
-
-//Algorithme de Brensenham
-void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
-  bool steep = false;
-  if (std::abs(x0-x1)<std::abs(y0-y1)) {
-    std::swap(x0, y0);
-    std::swap(x1, y1);
-    steep = true;
-  }
-  if (x0>x1) {
-    std::swap(x0, x1);
-    std::swap(y0, y1);
-  }
-  int dx = x1-x0;
-  int dy = y1-y0;
-  int derror2 = std::abs(dy)*2;
-  int error2 = 0;
-  int y = y0;
-  for (int x=x0; x<=x1; x++) {
-    if (steep) {
-      image.set(y, x, color);
-    } else {
-      image.set(x, y, color);
-    }
-    error2 += derror2;
-    if (error2 > dx) {
-      y += (y1>y0?1:-1);
-      error2 -= dx*2;
-    }
-  }
-}
 
 void read(){ //Lecture des .obj
 
@@ -66,10 +35,11 @@ void read(){ //Lecture des .obj
   ssize_t read;
   int res2;
   float res3;
-  float res4;  Matrice44 viewport;
+  float res4;  
+  Matrice44 viewport;
   float x,y,z,xt,yt,zt;
 
-  fp = fopen("african_head.obj", "r"); //deuxième arg : Droits
+  fp = fopen("diablo3_pose.obj", "r"); //deuxième arg : Droits
   if (fp == NULL)
   exit(EXIT_FAILURE);
 
@@ -166,7 +136,7 @@ void read(){ //Lecture des .obj
           yt = (res4);
         }
         if(cnt == 2){
-          zt = (res4);
+          zt = (0);
         }
 
         cnt++;
@@ -183,35 +153,8 @@ void read(){ //Lecture des .obj
 
 }
 
-Vertex barycentre(Vertex v1, Vertex v2, Vertex v3, int pointX, int pointY){
-
-  Vertex vt1;
-  vt1.x = v3.x-v1.x;
-  vt1.y = v2.x-v1.x;
-  vt1.z = v1.x-pointX;
-
-  Vertex vt2;
-  vt2.x = v3.y-v1.y;
-  vt2.y = v2.y-v1.y;
-  vt2.z = v1.y-pointY;
-
-  Vertex produit = produit_vectoriel(vt1,vt2);
-  float xt,yt,zt;
-  xt = 1. - (produit.x+produit.y)/produit.z;
-  yt = produit.y/produit.z;
-  zt = produit.x/produit.z;
-
-  produit.x = xt;
-  produit.y = yt;
-  produit.z = zt;
-
-  return produit;
-
-
-}
-
 void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, 
-  Vertex vtex1, Vertex vtex2, Vertex vtex3, Vertex vn1, Vertex vn2, Vertex vn3, TGAImage &nm, TGAImage &spec, int angle){
+  Vertex vtex1, Vertex vtex2, Vertex vtex3, Vertex vn1, Vertex vn2, Vertex vn3, TGAImage &nm,int angle){
 
   Vertex vt1;
   vt1 = v1 - v3;
@@ -242,7 +185,6 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
   TGAColor couleur;
   TGAColor couleur_base;
-  TGAColor couleur_spec;
 
   for(; i<=maxI; i++){
 
@@ -254,23 +196,17 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
         if(bary.x*v1.z+bary.y*v2.z+bary.z*v3.z > tabZ[i+(image.get_width()*j)]){ //Vérifie si le pixel est devant l'ancien dessiné
 
-            Vertex gouraud = bary.x * vn1 + bary.y * vn2 + bary.z * vn3;//gouraud
+            Vertex gouraud = bary.x * vn1 + bary.y * vn2 + bary.z * vn3; //gouraud
 
             int pix_x = ((vtex1.x*bary.x) + (vtex2.x*bary.y) + (vtex3.x*bary.z)) *nm.get_width();
             int pix_y = ((vtex1.y*bary.x) + (vtex2.y*bary.y) + (vtex3.y*bary.z)) *nm.get_height();
 
             couleur = (nm.get(pix_x,pix_y));
-            couleur_spec = (spec.get(pix_x,pix_y));
 
             Vertex normal_map; //normal map
             normal_map.x = couleur.b;
             normal_map.y = couleur.r;
             normal_map.z = couleur.g;
-
-            /*Vertex spec;
-            spec.x = couleur_spec.b;
-            spec.y = couleur_spec.r;
-            spec.z = couleur_spec.g;*/
 
             normal_map = normal_map*gouraud;
             normal_map.normalisation();
@@ -299,7 +235,7 @@ void write(TGAImage &image, int angle){
   for(int i = 0; i<vectF.size(); i+=3){
       remplir_Triangle(vectV[vectF[i]], vectV[vectF[i+1]] ,vectV[vectF[i+2]],image,texture,
         vectT[vectF2[i]], vectT[vectF2[i+1]], vectT[vectF2[i+2]], 
-        vectVN[vectF3[i]],vectVN[vectF3[i+1]], vectVN[vectF3[i+2]],nm,spec,angle);
+        vectVN[vectF3[i]],vectVN[vectF3[i+1]], vectVN[vectF3[i+2]],nm,angle);
   }
   
 }
@@ -332,12 +268,10 @@ viewport.identity();
   TGAImage image3(1000, 1000, TGAImage::RGB);
 
   read();
-  texture.read_tga_file("obj/african_head_diffuse.tga"); //lire texture
+  texture.read_tga_file("obj/diablo3_pose_diffuse.tga"); //lire texture
   texture.flip_vertically();
-  nm.read_tga_file("obj/african_head_nm.tga"); //lire normal mapping
+  nm.read_tga_file("obj/diablo3_pose_nm.tga"); //lire normal mapping
   nm.flip_vertically();
-  spec.read_tga_file("obj/african_head_spec.tga"); //lire specular
-  spec.flip_vertically();
 
   reglage(image);
   write(image,1);
