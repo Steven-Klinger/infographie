@@ -21,12 +21,11 @@ vector<int> vectF3;
 vector<Vertex> vectVN;
 
 float* tabZ; //Tableau de profondeur
-const Vertex lampe = Vertex(0,0,1); //Lampe en pleine face
-const Vertex camera = Vertex(0,0,1); 
+const Vertex lampe = Vertex(0,1,1); //Lampe en pleine face
 Matrice44 viewport;
 TGAImage texture;
 TGAImage nm; //normal mapping
-
+TGAImage spec; //specular map
 void read(){ //Lecture des .obj
 
   FILE * fp;
@@ -154,7 +153,7 @@ void read(){ //Lecture des .obj
 }
 
 void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage &texture, 
-  Vertex vtex1, Vertex vtex2, Vertex vtex3, Vertex vn1, Vertex vn2, Vertex vn3, TGAImage &nm,int angle){
+  Vertex vtex1, Vertex vtex2, Vertex vtex3, Vertex vn1, Vertex vn2, Vertex vn3, TGAImage &nm,TGAImage &spec,int angle){
 
   Vertex vt1;
   vt1 = v1 - v3;
@@ -208,10 +207,18 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
             normal_map.y = couleur.r;
             normal_map.z = couleur.g;
 
-            normal_map = normal_map*gouraud;
+            normal_map = normal_map * gouraud;
             normal_map.normalisation();
 
             float lumiere = max((double)(.2 + lampe.x*normal_map.x + lampe.y*normal_map.y + lampe.z*normal_map.z),0.);
+
+            Vertex specular = (normal_map*lampe)*2.f;
+            specular = specular - lampe;
+
+            TGAColor specC = spec.get(pix_x, pix_y);
+            float specu = pow(max(specular.z,0.f), 10 + specC.b);
+
+            lumiere += specu;
 
             couleur_base = (texture.get(pix_x, pix_y));
             couleur_base.r = min((double)couleur_base.r*lumiere, 255.);
@@ -235,7 +242,7 @@ void write(TGAImage &image, int angle){
   for(int i = 0; i<vectF.size(); i+=3){
       remplir_Triangle(vectV[vectF[i]], vectV[vectF[i+1]] ,vectV[vectF[i+2]],image,texture,
         vectT[vectF2[i]], vectT[vectF2[i+1]], vectT[vectF2[i+2]], 
-        vectVN[vectF3[i]],vectVN[vectF3[i+1]], vectVN[vectF3[i+2]],nm,angle);
+        vectVN[vectF3[i]],vectVN[vectF3[i+1]], vectVN[vectF3[i+2]],nm,spec,angle);
   }
   
 }
@@ -272,6 +279,8 @@ viewport.identity();
   texture.flip_vertically();
   nm.read_tga_file("obj/diablo3_pose_nm.tga"); //lire normal mapping
   nm.flip_vertically();
+  spec.read_tga_file("obj/diablo3_pose_spec.tga");
+  spec.flip_vertically();
 
   reglage(image);
   write(image,1);
