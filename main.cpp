@@ -275,6 +275,7 @@ viewport.identity();
   TGAImage image2(1000, 1000, TGAImage::RGB);
   TGAImage image3(1000, 1000, TGAImage::RGB);
 
+  cout << "Lecture de Diffuse, Normal_Map, Specular en cours..." << endl;
   read();
   texture.read_tga_file("obj/diablo3_pose_diffuse.tga"); //lire texture
   texture.flip_vertically();
@@ -287,16 +288,21 @@ viewport.identity();
   write(image,1);
   image.flip_vertically();
   image.write_tga_file("Rendu_Face.tga");
+  cout << "Image de face crée" << endl;
 
   reglage(image2);
   write(image2,45);
   image2.flip_vertically();
   image2.write_tga_file("Rendu_45.tga");
-  
+  cout << "Image à 45° crée" << endl;
+
   reglage(image3);
   write(image3,90);
   image3.flip_vertically();
   image3.write_tga_file("Rendu_90.tga");
+  cout << "Image à 90° crée" << endl;
+
+  cout << "Création des rendus terminée" << endl;
 
   return 0;
 }
