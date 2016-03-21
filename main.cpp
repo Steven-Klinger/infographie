@@ -21,7 +21,8 @@ vector<int> vectF3;
 vector<Vertex> vectVN;
 
 float* tabZ; //Tableau de profondeur
-const Vertex lampe = Vertex(1,0,1); //Lampe en pleine face
+const Vertex lampe = Vertex(0,0,1);
+const Vertex lampe2 = Vertex(1,0,1);
 Matrice44 viewport;
 TGAImage texture;
 TGAImage nm; //normal mapping
@@ -184,6 +185,7 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
 
   TGAColor couleur;
   TGAColor couleur_base;
+  TGAColor couleur_base2;
 
   for(; i<=maxI; i++){
 
@@ -207,24 +209,16 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
             normal_map.y = couleur.r;
             normal_map.z = couleur.g;
 
-            normal_map = normal_map * gouraud;
+            normal_map = normal_map*gouraud;
             normal_map.normalisation();
 
-            float lumiere = max((double)(.2 + lampe.x*normal_map.x + lampe.y*normal_map.y + lampe.z*normal_map.z),0.);
+            float lumiere =  max(lampe.x *normal_map.x + lampe.y *normal_map.y + lampe.z *normal_map.z,0.f);
+            float lumiere2 = max(lampe2.x*normal_map.x + lampe2.y*normal_map.y + lampe2.z*normal_map.z,0.f);
 
-            Vertex specular = (normal_map*lampe)*2.f;
-            specular = specular - lampe;
-
-            TGAColor specC = spec.get(pix_x, pix_y);
-            float specu = pow(max(specular.z,0.f), 10 + specC.b);
-
-            float ambiante = 0.1f;
-            lumiere += specu + ambiante;
-
-            couleur_base = (texture.get(pix_x, pix_y));
-            couleur_base.r = min((double)couleur_base.r*lumiere, 255.);
-            couleur_base.g = min((double)couleur_base.g*lumiere, 255.);
-            couleur_base.b = min((double)couleur_base.b*lumiere, 255.);
+//            couleur_base = (texture.get(pix_x, pix_y));
+            couleur_base.r = min(255*lumiere,  255.f);
+            couleur_base.b = min(255*lumiere2, 255.f);
+            couleur_base.g = 0;
 
             tabZ[i+(image.get_width()*j)] = bary.x*v1.z+bary.y*v2.z+bary.z*v3.z; //Enregistrer la nouvelle profondeur
             image.set(i,j,couleur_base);
@@ -277,7 +271,7 @@ viewport.identity();
 
   cout << "Lecture de Diffuse, Normal_Map, Specular en cours..." << endl;
   read();
-  texture.read_tga_file("obj/diablo3_pose_diffuse.tga"); //lire texture
+ texture.read_tga_file("obj/diablo3_pose_diffuse.tga"); //lire texture
   texture.flip_vertically();
   nm.read_tga_file("obj/diablo3_pose_nm.tga"); //lire normal mapping
   nm.flip_vertically();
