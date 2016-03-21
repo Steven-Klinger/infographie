@@ -21,7 +21,7 @@ vector<int> vectF3;
 vector<Vertex> vectVN;
 
 float* tabZ; //Tableau de profondeur
-const Vertex lampe = Vertex(0,1,1); //Lampe en pleine face
+const Vertex lampe = Vertex(1,0,1); //Lampe en pleine face
 Matrice44 viewport;
 TGAImage texture;
 TGAImage nm; //normal mapping
@@ -218,7 +218,8 @@ void remplir_Triangle(Vertex v1, Vertex v2, Vertex v3, TGAImage &image, TGAImage
             TGAColor specC = spec.get(pix_x, pix_y);
             float specu = pow(max(specular.z,0.f), 10 + specC.b);
 
-            lumiere += specu;
+            float ambiante = 0.1f;
+            lumiere += specu + ambiante;
 
             couleur_base = (texture.get(pix_x, pix_y));
             couleur_base.r = min((double)couleur_base.r*lumiere, 255.);
